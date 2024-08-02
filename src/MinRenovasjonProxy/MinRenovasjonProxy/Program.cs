@@ -1,7 +1,11 @@
 
+using Microsoft.Extensions.Diagnostics.Metrics;
 using Microsoft.Extensions.Options;
 using MinRenovasjonProxy.Core.Configuration;
 using MinRenovasjonProxy.Services;
+using OpenTelemetry;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 
 namespace MinRenovasjonProxy
 {
@@ -13,6 +17,12 @@ namespace MinRenovasjonProxy
             Console.WriteLine($"ASPNETCORE_ENVIRONMENT={System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
 
             // Add services to the container.
+            var meterProvider = Sdk.CreateMeterProviderBuilder()
+                .AddAspNetCoreInstrumentation()
+                .AddHttpClientInstrumentation()
+                .AddPrometheusExporter()
+                .Build();
+            builder.Services.AddSingleton(meterProvider);
             builder.Services.AddHttpClient();
             builder.Services.AddMemoryCache();
             builder.Configuration
@@ -46,6 +56,8 @@ namespace MinRenovasjonProxy
 
 
             app.MapControllers();
+
+            app.UseOpenTelemetryPrometheusScrapingEndpoint();
 
             app.Run();
         }
